@@ -1,0 +1,43 @@
+import pandas as pd
+
+from sklearn.preprocessing import MinMaxScaler
+
+df = pd.read_csv('C:/Users/anushikha24/amex/6a3eb196bc7a3_campus_challenge_r1_data (1).csv')
+print("Step 3: data loaded OK, shape =", df.shape)
+print("Step 3b: columns =", df.columns.tolist())
+
+zero_fill_cols = ['f13','f14','f15','f16','f17','f18','f4','f21','f22','f23','f12','f19','f20']
+df[zero_fill_cols] = df[zero_fill_cols].fillna(0)
+df['f5'] = df['f5'].fillna(df['f5'].median())
+df['f11'] = df['f11'].fillna(df['f11'].median())
+
+cols_to_use = ['f1','f2','f3','f4','f5','f11','f12','f13','f14','f15','f16',
+               'f17','f18','f19','f20','f21','f22','f23']
+scaler = MinMaxScaler()
+df_scaled = df.copy()
+df_scaled[cols_to_use] = scaler.fit_transform(df[cols_to_use])
+print("Step 5: scaling OK, df_scaled shape =", df_scaled.shape)
+print("Step 5b: df_scaled columns =", df_scaled.columns.tolist())
+
+plus_cols = ['f1','f5','f12','f17','f18','f19','f20','f22','f23']
+minus_cols = ['f2','f3','f4','f11','f13','f14','f15','f16','f21']
+df_scaled['profitability_score'] = df_scaled[plus_cols].sum(axis=1) - df_scaled[minus_cols].sum(axis=1)
+
+df_scaled['rank_pct'] = df_scaled['profitability_score'].rank(pct=True)
+df_scaled['prediction'] = (df_scaled['rank_pct'] >= 0.8).astype(int)
+print(df_scaled['prediction'].value_counts())
+
+print("Does 'id' column exist?", 'id' in df_scaled.columns)
+
+submission = df_scaled[['id', 'prediction']].copy()
+print("Step 9: submission dataframe built OK, shape =", submission.shape)
+
+submission.columns = ['ID', 'Prediction']
+
+import os
+print("Step 11: current working directory =", os.getcwd())
+
+submission.to_csv('predictions_for_submission.csv', index=False)
+
+print("Step 13: does file exist now?", os.path.exists('predictions_for_submission.csv'))
+print("Step 14: full path =", os.path.abspath('predictions_for_submission.csv'))
